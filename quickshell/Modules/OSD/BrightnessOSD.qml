@@ -48,9 +48,9 @@ LevelOSD {
     Connections {
         target: BrightnessService
 
-        function onBrightnessChanged(showOsd) {
+        function onBrightnessChanged(showOsd, deviceIds) {
             root.displayLevel = BrightnessService.brightnessLevel;
-            if (showOsd && SettingsData.osdBrightnessEnabled)
+            if (showOsd && SettingsData.osdBrightnessEnabled && BrightnessService.screenShowsOsd(root.screen, deviceIds))
                 root.show();
         }
     }

@@ -198,8 +198,8 @@ QtObject {
         target: BrightnessService
         enabled: root.enabled
 
-        function onBrightnessChanged(showOsd) {
-            if (showOsd && SettingsData.osdBrightnessEnabled && BrightnessService.screenTargetsLastDevice(root.controller.screen))
+        function onBrightnessChanged(showOsd, deviceIds) {
+            if (showOsd && SettingsData.osdBrightnessEnabled && BrightnessService.screenShowsOsd(root.controller.screen, deviceIds))
                 root.show("brightness");
         }
     }
