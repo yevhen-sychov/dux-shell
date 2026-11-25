@@ -8,8 +8,10 @@ LevelOSD {
 
     osdKind: "brightness"
 
-    readonly property var device: BrightnessService.getCurrentDeviceInfo()
-    property int displayLevel: BrightnessService.brightnessLevel
+    property string osdDeviceId: ""
+    readonly property string deviceId: osdDeviceId || BrightnessService.screenLeadDevice(screen)
+    readonly property var device: BrightnessService.getCurrentDeviceInfoByName(deviceId)
+    property int displayLevel: BrightnessService.getDeviceBrightness(deviceId)
 
     iconName: BrightnessService.brightnessIconName(device, displayLevel)
     insetIconName: BrightnessService.brightnessIconName(device)
@@ -42,15 +44,18 @@ LevelOSD {
 
     onLevelRequested: level => {
         displayLevel = level;
-        BrightnessService.setGroupBrightness(level, BrightnessService.lastIpcTargets(), true);
+        BrightnessService.setGroupBrightness(level, BrightnessService.screenOsdTargets(screen, deviceId), true);
     }
 
     Connections {
         target: BrightnessService
 
-        function onBrightnessChanged(showOsd) {
-            root.displayLevel = BrightnessService.brightnessLevel;
-            if (showOsd && SettingsData.osdBrightnessEnabled)
+        function onBrightnessChanged(showOsd, deviceIds) {
+            const osdDevice = showOsd && SettingsData.osdBrightnessEnabled ? BrightnessService.screenOsdDevice(root.screen, deviceIds) : "";
+            if (osdDevice)
+                root.osdDeviceId = osdDevice;
+            root.displayLevel = BrightnessService.getDeviceBrightness(root.deviceId);
+            if (osdDevice)
                 root.show();
         }
     }

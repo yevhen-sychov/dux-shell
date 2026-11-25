@@ -35,7 +35,7 @@ Singleton {
     property bool brightnessInitialized: false
     property bool suppressOsd: true
 
-    signal brightnessChanged(bool showOsd)
+    signal brightnessChanged(bool showOsd, var deviceIds)
     signal deviceSwitched
 
     function markDeviceUserControlled(deviceId) {
@@ -137,7 +137,7 @@ Singleton {
         if (isPendingOsd) {
             clearDevicePendingOsd(device.id);
             if (!suppressOsd) {
-                brightnessChanged(true);
+                brightnessChanged(true, [device.id]);
             }
             return;
         }
@@ -148,7 +148,7 @@ Singleton {
         if (suppressOsd) {
             return;
         }
-        brightnessChanged(true);
+        brightnessChanged(true, [device.id]);
     }
 
     function updateFromBrightnessState(state) {
@@ -177,7 +177,7 @@ Singleton {
         deviceMaxCache = newMaxCache;
 
         const newBrightness = {};
-        let anyDeviceBrightnessChanged = false;
+        const changedIds = [];
 
         for (const device of state.devices) {
             const isExponential = SessionData.getBrightnessExponential(device.id);
@@ -196,7 +196,7 @@ Singleton {
 
             const newValue = newBrightness[device.id];
             if (oldValue !== undefined && oldValue !== newValue) {
-                anyDeviceBrightnessChanged = true;
+                changedIds.push(device.id);
             }
         }
         deviceBrightness = newBrightness;
@@ -216,14 +216,14 @@ Singleton {
             }
         }
 
-        const shouldShowOsd = brightnessInitialized && anyDeviceBrightnessChanged && !suppressOsd;
+        const shouldShowOsd = brightnessInitialized && changedIds.length > 0 && !suppressOsd;
 
         if (!brightnessInitialized) {
             brightnessInitialized = true;
         }
 
         if (shouldShowOsd) {
-            brightnessChanged(true);
+            brightnessChanged(true, changedIds);
         }
     }
 
@@ -271,7 +271,7 @@ Singleton {
         brightnessVersion++;
 
         if (isLedDevice && !suppressOsd) {
-            brightnessChanged(true);
+            brightnessChanged(true, [actualDevice]);
         }
 
         if (isExponential) {
@@ -398,8 +398,15 @@ Singleton {
         return pinned.length > 0 ? pinned : lastIpcTargets();
     }
 
-    function screenTargetsLastDevice(screen) {
-        return screenTargets(screen).includes(lastIpcDevice);
+    function screenOsdDevice(screen, deviceIds) {
+        const targets = screenTargets(screen);
+        // LEDs such as keyboard backlights belong to no screen, so pins never cover them.
+        return (deviceIds || []).find(id => targets.includes(id) || getCurrentDeviceInfoByName(id)?.class === "leds") || "";
+    }
+
+    function screenOsdTargets(screen, deviceId) {
+        const targets = screenTargets(screen);
+        return targets.includes(deviceId) ? targets : [deviceId];
     }
 
     function screenLeadDevice(screen) {

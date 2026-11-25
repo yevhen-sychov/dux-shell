@@ -34,7 +34,8 @@ QtObject {
         }
         return 0;
     }
-    readonly property string brightnessDeviceId: BrightnessService.screenLeadDevice(controller.screen)
+    property string osdBrightnessDeviceId: ""
+    readonly property string brightnessDeviceId: osdBrightnessDeviceId || BrightnessService.screenLeadDevice(controller.screen)
     readonly property var brightnessDevice: BrightnessService.getCurrentDeviceInfoByName(brightnessDeviceId)
     readonly property real maximum: {
         switch (kind) {
@@ -143,7 +144,7 @@ QtObject {
             AudioService.setMicVolume(Math.round(clampedRatio * maximum));
             return;
         case "brightness":
-            BrightnessService.setGroupBrightness(Math.round(clampedRatio * maximum), BrightnessService.screenTargets(controller.screen), true);
+            BrightnessService.setGroupBrightness(Math.round(clampedRatio * maximum), BrightnessService.screenOsdTargets(controller.screen, brightnessDeviceId), true);
             return;
         }
     }
@@ -198,9 +199,14 @@ QtObject {
         target: BrightnessService
         enabled: root.enabled
 
-        function onBrightnessChanged(showOsd) {
-            if (showOsd && SettingsData.osdBrightnessEnabled && BrightnessService.screenTargetsLastDevice(root.controller.screen))
-                root.show("brightness");
+        function onBrightnessChanged(showOsd, deviceIds) {
+            if (!showOsd || !SettingsData.osdBrightnessEnabled)
+                return;
+            const osdDevice = BrightnessService.screenOsdDevice(root.controller.screen, deviceIds);
+            if (!osdDevice)
+                return;
+            root.osdBrightnessDeviceId = osdDevice;
+            root.show("brightness");
         }
     }
 
